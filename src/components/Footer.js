@@ -34,7 +34,7 @@ const Footer = () => {
             </div>
             <div className="flex items-center gap-4">
               <Link
-                href="https://github.com/yasuo72.git"
+                href="https://github.com/yasuo72/HabitiQ.git"
                 className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors text-xs"
               >
                 Fork and Build Your Own
