@@ -198,7 +198,7 @@ export default function Home() {
 
                     <div className="grid grid-cols-3 gap-4 pt-4">
                       {[
-                        { label: 'Active Users', value: '10k+' },
+                        { label: 'Active Users', value: '5+ 😅' },
                         { label: 'Satisfaction', value: '98%' },
                         { label: 'AI Support', value: '24/7' }
                       ].map((stat, index) => (
