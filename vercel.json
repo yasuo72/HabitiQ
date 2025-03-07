@@ -13,6 +13,6 @@
     }
   ],
   "env": {
-    "OPENAI_API_KEY": "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"
+    "OPENAI_API_KEY": ""
   }
 }
