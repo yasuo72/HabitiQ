@@ -24,23 +24,25 @@ export default function Dashboard() {
   const [showAllEntries, setShowAllEntries] = useState(false);
 
   useEffect(() => {
+    // Fetch data from storage
     const savedEntries = storageUtils.getJournalEntries();
-    setJournalEntries(savedEntries);
-
     const savedGoalsData = storageUtils.getGoalsData();
-    setGoalsData(savedGoalsData);
-
     const savedNutritionData = storageUtils.getNutritionData();
+    const savedAnalysis = localStorage.getItem('journalAnalysis');
+    const parsedAnalysis = savedAnalysis ? JSON.parse(savedAnalysis) : null;
+
+    // Set state
+    setJournalEntries(savedEntries);
+    setGoalsData(savedGoalsData);
     setNutritionData(savedNutritionData);
 
-    const calculateHealthScore = () => {
-      const savedAnalysis = localStorage.getItem('journalAnalysis');
-      const parsedAnalysis = savedAnalysis ? JSON.parse(savedAnalysis) : null;
-      if (parsedAnalysis) {
-        setAnalysis(parsedAnalysis);
-        setLastUpdateTime(parsedAnalysis.timestamp);
-      }
+    if (parsedAnalysis) {
+      setAnalysis(parsedAnalysis);
+      setLastUpdateTime(parsedAnalysis.timestamp);
+    }
 
+    // Calculate health score
+    const calculateHealthScore = () => {
       const today = new Date();
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
@@ -92,7 +94,7 @@ export default function Dashboard() {
         timestamp: new Date().toISOString(),
         details: {
           sleep: metrics.sleep?.quality || 0,
-          exercise: metrics.exercise?.average ? Math.min(100 , (metrics.exercise.average / 30) * 100) : 0,
+          exercise: metrics.exercise?.average ? Math.min(100, (metrics.exercise.average / 30) * 100) : 0,
           habits: activeHabits,
           mood: metrics.mentalHealth?.predominantMood || 'neutral',
           nutrition: savedNutritionData.meals.length > 0 ?
@@ -126,7 +128,7 @@ export default function Dashboard() {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [goalsData, nutritionData]);
+  }, []); // Empty dependency array to run only once
 
   const handleJournalSubmit = (e) => {
     e.preventDefault();
@@ -188,12 +190,10 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <main className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-
           <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-6 text-white">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-emerald-100">Health Score</p>
-
                 <h3 className="text-2xl font-bold">
                   {healthScore ? `${healthScore.score}%` : 'N/A'}
                 </h3>
@@ -219,7 +219,7 @@ export default function Dashboard() {
                   <p className="text-emerald-100">Active Habits</p>
                   <p className="font-medium">{healthScore.details.habits}</p>
                 </div>
-                < div>
+                <div>
                   <p className="text-emerald-100">Mood</p>
                   <p className="font-medium capitalize">{healthScore.details.mood}</p>
                 </div>
@@ -231,7 +231,6 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Goals Progress Card */}
           <div className="bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl p-6 text-white">
             <div className="flex items-center justify-between">
               <div>
@@ -254,7 +253,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Nutrition Card */}
           <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-xl p-6 text-white">
             <div className="flex items-center justify-between">
               <div>
@@ -271,7 +269,7 @@ export default function Dashboard() {
                 <p className="font-medium">{nutritionData.waterIntake}ml</p>
               </div>
               <div>
-                <p className="text-sky-100">Today&apos;s Meals</p>
+                <p className="text-sky-100">Today's Meals</p>
                 <p className="font-medium">
                   {nutritionData.meals.filter(m =>
                     new Date(m.date).toDateString() === new Date().toDateString()
@@ -283,12 +281,11 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Journal Entry Form */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="mb-6">
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <Clock className="h-5 w-5 text-violet-600" />
-                Today&apos;s Journal
+                Today's Journal
               </h2>
               <p className="text-sm text-gray-500 mt-1">Write freely about your day, feelings, and experiences.</p>
             </div>
@@ -311,7 +308,7 @@ export default function Dashboard() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleAnalyzeReport}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-violet-600 bg-violet-50 rounded-lg hover:bg-violet- 100 transition-colors"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-violet-600 bg-violet-50 rounded-lg hover:bg-violet-100 transition-colors"
                   >
                     <Brain className="h-4 w-4 mr-2" />
                     {lastUpdateTime && new Date(lastUpdateTime).toDateString() === new Date().toDateString() ? (
@@ -334,7 +331,6 @@ export default function Dashboard() {
             </form>
           </div>
 
-          {/* Journal Timeline */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold">Journal Timeline</h2>
