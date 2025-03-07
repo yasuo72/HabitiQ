@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-md transition-all duration-200;
+  }
+  
+  .btn-primary {
+    @apply btn bg-black text-white hover:bg-gray-800;
+  }
+  
+  .input {
+    @apply w-full p-3 border border-gray-200 rounded-md focus:outline-none focus:border-black;
+  }
+  
+  .card {
+    @apply bg-white p-6 rounded-lg shadow-md;
+  }
+}
