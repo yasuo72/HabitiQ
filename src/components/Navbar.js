@@ -53,7 +53,7 @@ const Navbar = () => {
           {/* Logo and Brand */}
           <div className="flex items-center">
             <Activity className="h-6 w-6" />
-            <span className="ml-2 text-xl font-semibold">HealthScribeGPT</span>
+            <span className="ml-2 text-xl font-semibold">HabitiQ</span>
           </div>
 
           {/* Navigation Links */}
