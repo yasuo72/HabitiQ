@@ -269,7 +269,7 @@ export default function Dashboard() {
                 <p className="font-medium">{nutritionData.waterIntake}ml</p>
               </div>
               <div>
-                <p className="text-sky-100">Today's Meals</p>
+                <p className="text-sky-100">Today&apos;s Meals</p>
                 <p className="font-medium">
                   {nutritionData.meals.filter(m =>
                     new Date(m.date).toDateString() === new Date().toDateString()
@@ -285,7 +285,7 @@ export default function Dashboard() {
             <div className="mb-6">
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <Clock className="h-5 w-5 text-violet-600" />
-                Today's Journal
+                Today&apos;s Journal
               </h2>
               <p className="text-sm text-gray-500 mt-1">Write freely about your day, feelings, and experiences.</p>
             </div>
