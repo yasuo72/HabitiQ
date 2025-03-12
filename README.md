@@ -43,7 +43,7 @@ Built with Next.js and styled with Tailwind CSS, this application offers a seaml
 
 <div style="display: flex; justify-content: space-between;">
   <img src="https://github.com/yasuo72/assests/blob/main/Screenshot%202024-12-13%20165534.png" alt="HealthScribeGPT Analytics Page" style="width: 49%; border: 2px solid black;" />
-  <img src="https://github.com/yasuo72/assests/blob/main/Screenshot%202024-12-13%20165456.pngg" alt="HealthScribeGPT Reports Page" style="width: 49%; border: 2px solid black;" />
+  <img src="https://github.com/yasuo72/assests/blob/main/Screenshot%202024-12-13%20165456.png" alt="HealthScribeGPT Reports Page" style="width: 49%; border: 2px solid black;" />
 </div>
 
 <div style="display: flex; justify-content: space-between;">
