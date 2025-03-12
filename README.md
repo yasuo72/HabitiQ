@@ -37,18 +37,18 @@ Built with Next.js and styled with Tailwind CSS, this application offers a seaml
 ## Screenshots
 
 <div style="display: flex; justify-content: space-between;">
-  <img src="https://github.com/0xmetaschool/health-scribe-gpt/blob/main/public/Screenshot%202024-12-13%20165300.png" alt="HealthScribeGPT Landing Page" style="width: 49%; border: 2px solid black;" />
-  <img src="https://github.com/0xmetaschool/health-scribe-gpt/blob/main/public/Screenshot%202024-12-13%20165336.png" alt="HealthScribeGPT Dashboard" style="width: 49%; border: 2px solid black;" />
+  <img src="https://github.com/yasuo72/assests/blob/main/WhatsApp%20Image%202025-01-31%20at%2022.34.26_55301c5a.png" alt="HealthScribeGPT Landing Page" style="width: 49%; border: 2px solid black;" />
+  <img src="https://github.com/yasuo72/assests/blob/main/Screenshot%202024-12-13%20165551.png" alt="HealthScribeGPT Dashboard" style="width: 49%; border: 2px solid black;" />
 </div>
 
 <div style="display: flex; justify-content: space-between;">
-  <img src="https://github.com/0xmetaschool/health-scribe-gpt/blob/main/public/Screenshot%202024-12-13%20165401.png" alt="HealthScribeGPT Analytics Page" style="width: 49%; border: 2px solid black;" />
-  <img src="https://github.com/0xmetaschool/health-scribe-gpt/blob/main/public/Screenshot%202024-12-13%20165456.png" alt="HealthScribeGPT Reports Page" style="width: 49%; border: 2px solid black;" />
+  <img src="https://github.com/yasuo72/assests/blob/main/Screenshot%202024-12-13%20165534.png" alt="HealthScribeGPT Analytics Page" style="width: 49%; border: 2px solid black;" />
+  <img src="https://github.com/yasuo72/assests/blob/main/Screenshot%202024-12-13%20165456.pngg" alt="HealthScribeGPT Reports Page" style="width: 49%; border: 2px solid black;" />
 </div>
 
 <div style="display: flex; justify-content: space-between;">
-  <img src="https://github.com/0xmetaschool/health-scribe-gpt/blob/main/public/Screenshot%202024-12-13%20165534.png" alt="HealthScribeGPT Goals Page" style="width: 49%; border: 2px solid black;" />
-  <img src="https://github.com/0xmetaschool/health-scribe-gpt/blob/main/public/Screenshot%202024-12-13%20165551.png" alt="HealthScribeGPT Insights Page" style="width: 49%; border: 2px solid black;" />
+  <img src="https://github.com/yasuo72/assests/blob/main/Screenshot%202024-12-13%20165401.png" alt="HealthScribeGPT Goals Page" style="width: 49%; border: 2px solid black;" />
+  <img src="https://github.com/yasuo72/assests/blob/main/Screenshot%202024-12-13%20165336.png" alt="HealthScribeGPT Insights Page" style="width: 49%; border: 2px solid black;" />
 </div>
 
 ## How to Use the Application
