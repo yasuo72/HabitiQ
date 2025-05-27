@@ -1,0 +1,14 @@
+# OpenAI API Key (Required for AI journal analysis)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# MongoDB Connection String (MongoDB Atlas)
+MONGODB_URI=your_mongodb_connection_string_here
+
+# Authentication Secret (Required for JWT token generation)
+JWT_SECRET=your_jwt_secret_here
+
+# Next.js Environment
+NODE_ENV=development
+
+# Optional: Set port for Next.js server
+# PORT=3000

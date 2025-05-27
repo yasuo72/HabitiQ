@@ -1,4 +1,19 @@
+# Environment variables
+.env
 .env.*
+!env-example
+
+# Dependencies
 /node_modules
+
+# Next.js build output
 .next
 .vercel
+
+# Debug files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local Netlify folder
+.netlify
