@@ -5,11 +5,30 @@ const handleStorageError = (error, defaultValue) => {
   return defaultValue;
 };
 
+// Helper to get the current user's ID for prefixing storage keys
+const getUserId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user._id || user.id || 'anonymous';
+  } catch (error) {
+    console.error('Error getting user ID:', error);
+    return 'anonymous';
+  }
+};
+
+// Create a user-specific key for localStorage
+const getUserKey = (key) => {
+  const userId = getUserId();
+  return `user_${userId}_${key}`;
+};
+
 export const storageUtils = {
   // Journal Entries
   saveJournalEntries: (entries) => {
     try {
-      localStorage.setItem('journalEntries', JSON.stringify(entries));
+      const userKey = getUserKey('journalEntries');
+      localStorage.setItem(userKey, JSON.stringify(entries));
+      console.log(`Saved ${entries.length} journal entries for user ${getUserId()}`);
       return true;
     } catch (error) {
       return handleStorageError(error, false);
@@ -18,8 +37,11 @@ export const storageUtils = {
 
   getJournalEntries: () => {
     try {
-      const entries = localStorage.getItem('journalEntries');
-      return entries ? JSON.parse(entries) : [];
+      const userKey = getUserKey('journalEntries');
+      const entries = localStorage.getItem(userKey);
+      const result = entries ? JSON.parse(entries) : [];
+      console.log(`Retrieved ${result.length} journal entries for user ${getUserId()}`);
+      return result;
     } catch (error) {
       return handleStorageError(error, []);
     }
@@ -49,16 +71,19 @@ export const storageUtils = {
         ...data,
         timestamp
       };
-      localStorage.setItem('journalAnalysis', JSON.stringify(analysisWithTimestamp));
+      const userAnalysisKey = getUserKey('journalAnalysis');
+      localStorage.setItem(userAnalysisKey, JSON.stringify(analysisWithTimestamp));
 
       // Update analysis history
-      const existingHistory = JSON.parse(localStorage.getItem('journalAnalysisHistory') || '[]');
+      const userHistoryKey = getUserKey('journalAnalysisHistory');
+      const existingHistory = JSON.parse(localStorage.getItem(userHistoryKey) || '[]');
       const updatedHistory = [
         analysisWithTimestamp,
         ...existingHistory.filter(item => item.timestamp !== timestamp)
       ].slice(0, 30); // Keep last 30 analyses
 
-      localStorage.setItem('journalAnalysisHistory', JSON.stringify(updatedHistory));
+      localStorage.setItem(userHistoryKey, JSON.stringify(updatedHistory));
+      console.log(`Saved analysis data for user ${getUserId()}`);
       return true;
     } catch (error) {
       return handleStorageError(error, false);
@@ -67,7 +92,8 @@ export const storageUtils = {
 
   getAnalysis: () => {
     try {
-      const analysis = localStorage.getItem('journalAnalysis');
+      const userAnalysisKey = getUserKey('journalAnalysis');
+      const analysis = localStorage.getItem(userAnalysisKey);
       return analysis ? JSON.parse(analysis) : null;
     } catch (error) {
       return handleStorageError(error, null);
@@ -76,7 +102,8 @@ export const storageUtils = {
 
   getAnalysisHistory: () => {
     try {
-      const history = localStorage.getItem('journalAnalysisHistory');
+      const userHistoryKey = getUserKey('journalAnalysisHistory');
+      const history = localStorage.getItem(userHistoryKey);
       return history ? JSON.parse(history) : [];
     } catch (error) {
       return handleStorageError(error, []);
@@ -86,11 +113,13 @@ export const storageUtils = {
   // Nutrition Data
   saveNutritionData: (meals, waterIntake) => {
     try {
-      localStorage.setItem('nutritionData', JSON.stringify({
+      const userNutritionKey = getUserKey('nutritionData');
+      localStorage.setItem(userNutritionKey, JSON.stringify({
         meals,
         waterIntake,
         timestamp: new Date().toISOString()
       }));
+      console.log(`Saved nutrition data for user ${getUserId()}`);
       return true;
     } catch (error) {
       return handleStorageError(error, false);
@@ -99,7 +128,8 @@ export const storageUtils = {
 
   getNutritionData: () => {
     try {
-      const data = localStorage.getItem('nutritionData');
+      const userNutritionKey = getUserKey('nutritionData');
+      const data = localStorage.getItem(userNutritionKey);
       return data ? JSON.parse(data) : { meals: [], waterIntake: 0, timestamp: null };
     } catch (error) {
       return handleStorageError(error, { meals: [], waterIntake: 0, timestamp: null });
@@ -109,11 +139,13 @@ export const storageUtils = {
   // Goals Data
   saveGoalsData: (goals, habits) => {
     try {
-      localStorage.setItem('goalsData', JSON.stringify({
+      const userGoalsKey = getUserKey('goalsData');
+      localStorage.setItem(userGoalsKey, JSON.stringify({
         goals,
         habits,
         timestamp: new Date().toISOString()
       }));
+      console.log(`Saved goals data for user ${getUserId()}`);
       return true;
     } catch (error) {
       return handleStorageError(error, false);
@@ -122,10 +154,30 @@ export const storageUtils = {
 
   getGoalsData: () => {
     try {
-      const data = localStorage.getItem('goalsData');
+      const userGoalsKey = getUserKey('goalsData');
+      const data = localStorage.getItem(userGoalsKey);
       return data ? JSON.parse(data) : { goals: [], habits: [], timestamp: null };
     } catch (error) {
       return handleStorageError(error, { goals: [], habits: [], timestamp: null });
+    }
+  },
+  
+  // Clear all data for the current user
+  clearUserData: () => {
+    try {
+      const userId = getUserId();
+      console.log(`Clearing all data for user ${userId}`);
+      
+      // Remove all user-specific items
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith(`user_${userId}_`)) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      return true;
+    } catch (error) {
+      return handleStorageError(error, false);
     }
   }
 };

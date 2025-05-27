@@ -2,14 +2,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Brain, ActivitySquare, Thermometer, Heart } from 'lucide-react';
 import { AnalyzeButton } from '@/components/analytics/AnalyzeButton';
 import { SleepQualityChart } from '@/components/analytics/SleepQualityChart';
 import { MoodTracker } from '@/components/analytics/MoodTracker';
 import { SymptomFrequency } from '@/components/analytics/SymptomFrequency';
 import HealthInsights from '@/components/analytics/HealthInsights';
+import EnhancedHealthInsights from '@/components/analytics/EnhancedHealthInsights';
+import EnhancedMoodTracker from '@/components/analytics/EnhancedMoodTracker';
+import EnhancedInsightsPanel from '@/components/analytics/EnhancedInsightsPanel';
+import AnimatedHealthCard from '@/components/analytics/AnimatedHealthCard';
 import { storageUtils } from '@/utils/storage';
 import { MessageSquare, BarChart3 } from 'lucide-react';
+import { fadeIn, slideUp, staggerContainer } from '@/utils/animations';
 
 const determinePattern = (data) => {
   if (!data || data.length < 2) return 'Not enough data';
@@ -118,113 +124,19 @@ const prepareMoodData = (history) => {
     })
     .sort((a, b) => a.rawTimestamp - b.rawTimestamp); // Ensure chronological order
 
-  const latestMetrics = history[0]?.metrics?.mentalHealth || {};
-  
-  return {
-    data: processedData,
-    predominantMood: latestMetrics.predominantMood || 'neutral',
-    stressLevel: latestMetrics.stressLevel || 'moderate',
-    trend: latestMetrics.trend || 'stable'
-  };
-};
-
-// Helper function to calculate sleep score
-const calculateSleepScore = (hours) => {
-  if (!hours) return 0;
-  const idealHours = 8;
-  const deviation = Math.abs(hours - idealHours);
-  return Math.max(0, Math.min(100, Math.round(100 - (deviation * 12.5))));
-};
-
-const calculateSleepQuality = (metrics) => {
-  if (!metrics || !metrics.sleep) return 0;
-  
-  // Calculate sleep quality based on various factors
-  const targetSleep = 8; // ideal hours of sleep
-  const sleepDeviation = Math.abs(metrics.sleep - targetSleep);
-  const qualityScore = Math.max(0, 100 - (sleepDeviation * 15)); // Deduct 15 points per hour deviation
-  
-  return Math.round(qualityScore);
-};
-
-const processAnalysisResults = (results) => {
-  if (!results || results.length === 0) return null;
-
-  const validResults = results.filter(r => !r.error);
-  
-  // Calculate averages and aggregate metrics
-  const metrics = validResults.reduce((acc, result) => {
-    const metrics = result.metrics || {};
-    return {
-      sleep: acc.sleep + (metrics.sleep || 0),
-      exercise: acc.exercise + (metrics.exercise || 0),
-      symptoms: [...acc.symptoms, ...(metrics.symptoms || [])],
-      moods: [...acc.moods, metrics.mood || 'neutral'],
-      energy: [...acc.energy, metrics.energy || 'medium']
-    };
-  }, { sleep: 0, exercise: 0, symptoms: [], moods: [], energy: [] });
-
-  // Calculate averages
-  const totalEntries = validResults.length;
-  const averageSleep = totalEntries > 0 ? metrics.sleep / totalEntries : 0;
-  const averageExercise = totalEntries > 0 ? metrics.exercise / totalEntries : 0;
-
-  // Find most common values
-  const commonSymptoms = findMostCommon(metrics.symptoms);
-  const predominantMood = findMostCommon(metrics.moods)[0];
-  const predominantEnergy = findMostCommon(metrics.energy)[0];
-
-  // Aggregate insights and recommendations
-  const allInsights = validResults.reduce((acc, result) => {
-    return [...acc, ...(result.insights || [])];
-  }, []);
-
-  const allRecommendations = validResults.reduce((acc, result) => {
-    return [...acc, ...(result.recommendations || [])];
-  }, []);
-
-  // Remove duplicates and take top items
-  const uniqueInsights = [...new Set(allInsights)].slice(0, 5);
-  const uniqueRecommendations = [...new Set(allRecommendations)].slice(0, 5);
-
-  return {
-    metrics: {
-      sleep: averageSleep,
-      exercise: averageExercise,
-      symptoms: commonSymptoms.slice(0, 5), // Top 5 symptoms
-      mood: predominantMood,
-      energy: predominantEnergy
-    },
-    insights: uniqueInsights,
-    recommendations: uniqueRecommendations,
-    analysisCount: totalEntries,
-    successRate: (totalEntries / results.length) * 100
-  };
-};
-
-// Helper function to find most common items in an array
-const findMostCommon = (arr) => {
-  if (!arr || arr.length === 0) return [];
-  
-  const counts = arr.reduce((acc, val) => {
-    acc[val] = (acc[val] || 0) + 1;
-    return acc;
-  }, {});
-
-  return Object.entries(counts)
-    .sort(([,a], [,b]) => b - a)
-    .map(([val]) => val);
+  return processedData;
 };
 
 export default function Analytics() {
   const [entriesCount, setEntriesCount] = useState(7);
   const [journalEntries, setJournalEntries] = useState([]);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [analysisHistory, setAnalysisHistory] = useState([]);
-  const [lastUpdateTime, setLastUpdateTime] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState(null);
+  const [useEnhancedUI, setUseEnhancedUI] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState(null);
 
   useEffect(() => {
     const loadEntries = () => {
@@ -232,40 +144,25 @@ export default function Analytics() {
       setJournalEntries(savedEntries);
     };
 
-    // Load stored analysis data and history if available
     const loadStoredAnalysis = () => {
       try {
-        // Load current analysis
-        const storedAnalysis = localStorage.getItem('journalAnalysis');
-        if (storedAnalysis) {
-          try {
-            const parsedAnalysis = JSON.parse(storedAnalysis);
-            setAnalysis(parsedAnalysis);
-            setLastUpdateTime(new Date().toISOString());
-          } catch (e) {
-            console.error('Error parsing current analysis:', e);
-            localStorage.removeItem('journalAnalysis'); // Clear invalid data
-          }
-        }
-
-        // Load and validate history
-        const storedHistory = localStorage.getItem('journalAnalysisHistory');
-        if (storedHistory) {
-          try {
-            const history = JSON.parse(storedHistory);
-            if (Array.isArray(history)) {
-              setAnalysisHistory(history);
-            } else {
-              console.error('Invalid history format');
-              localStorage.removeItem('journalAnalysisHistory');
-              setAnalysisHistory([]);
-            }
-          } catch (e) {
-            console.error('Error parsing analysis history:', e);
-            localStorage.removeItem('journalAnalysisHistory');
-            setAnalysisHistory([]);
-          }
+        console.log('Loading stored analysis data for current user');
+        const savedAnalysis = storageUtils.getAnalysis();
+        const savedHistory = storageUtils.getAnalysisHistory();
+        
+        if (savedAnalysis) {
+          console.log('Found saved analysis:', savedAnalysis.timestamp);
+          setAnalysis(savedAnalysis);
+          setLastUpdateTime(savedAnalysis.timestamp);
         } else {
+          console.log('No saved analysis found');
+        }
+        
+        if (savedHistory && savedHistory.length > 0) {
+          console.log(`Found ${savedHistory.length} saved analysis history items`);
+          setAnalysisHistory(savedHistory);
+        } else {
+          console.log('No analysis history found');
           setAnalysisHistory([]);
         }
       } catch (error) {
@@ -298,18 +195,51 @@ export default function Analytics() {
     setLoading(true);
 
     try {
-      const entriesToAnalyze = journalEntries.slice(0, entriesCount);
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No authentication token found');
+        setError('Authentication required. Please log in again.');
+        setIsAnalyzing(false);
+        setLoading(false);
+        return;
+      }
+      
+      // Format entries properly for analysis
+      const entriesToAnalyze = journalEntries.slice(0, entriesCount).map(entry => {
+        // Ensure we have all the required fields
+        return {
+          content: entry.content || '',
+          date: entry.date || entry.timestamp || new Date().toISOString(),
+          mood: entry.mood || 'neutral',
+          sleep: entry.sleep || { hours: 7, quality: 'average' },
+          exercise: entry.exercise || { minutes: 0, type: 'none' },
+          nutrition: entry.nutrition || { meals: [], water: 0 }
+        };
+      });
+      
+      console.log(`Analyzing ${entriesToAnalyze.length} journal entries with real data`);
+      console.log('Sample entry:', JSON.stringify(entriesToAnalyze[0] || {}, null, 2));
       
       const response = await fetch('/api/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entries: entriesToAnalyze })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ entries: entriesToAnalyze }),
+        credentials: 'include' // Include cookies in the request
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        console.error('Analysis error:', data);
-        setError(data.error || 'Failed to analyze entries. Please try again.');
+        try {
+          const data = await response.json();
+          console.error('Analysis error:', data);
+          setError(data.error || 'Failed to analyze entries. Please try again.');
+        } catch (jsonError) {
+          console.error('Error parsing error response:', jsonError);
+          setError(`Server error: ${response.status} ${response.statusText}`);
+        }
         return;
       }
 
@@ -331,24 +261,14 @@ export default function Analytics() {
       setAnalysis(analysisWithTimestamp);
       setLastUpdateTime(timestamp);
       
-      // Store current analysis
-      localStorage.setItem('journalAnalysis', JSON.stringify(analysisWithTimestamp));
-
-      // Initialize or update history
-      const storedHistory = localStorage.getItem('journalAnalysisHistory');
-      const currentHistory = storedHistory && storedHistory !== 'undefined' 
-        ? JSON.parse(storedHistory) 
-        : [];
-
-      // Ensure currentHistory is an array
-      const historyArray = Array.isArray(currentHistory) ? currentHistory : [];
+      // Store current analysis using the user-specific storage utility
+      storageUtils.saveAnalysis(analysisWithTimestamp);
       
-      // Add new analysis to history
-      const updatedHistory = [analysisWithTimestamp, ...historyArray].slice(0, 30);
-      
-      // Store updated history
-      localStorage.setItem('journalAnalysisHistory', JSON.stringify(updatedHistory));
+      // Get the updated history after saving
+      const updatedHistory = storageUtils.getAnalysisHistory();
       setAnalysisHistory(updatedHistory);
+      
+      console.log(`Saved analysis for user and updated history (${updatedHistory.length} items)`);
 
     } catch (error) {
       console.error('Analysis error:', error);
@@ -360,8 +280,16 @@ export default function Analytics() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-6">
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={fadeIn}
+      className="min-h-screen bg-gray-50"
+    >
+      <motion.div 
+        variants={staggerContainer}
+        className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8"
+      >
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-xl font-semibold flex items-center gap-2">
@@ -403,115 +331,255 @@ export default function Analytics() {
 
         {analysis && !isAnalyzing && (
           <div className="space-y-6">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-violet-100">Mental Well-being</p>
-                    <h3 className="text-2xl font-bold capitalize">
-                      {analysis?.metrics?.mentalHealth?.predominantMood || 'Neutral'}
-                    </h3>
-                    <p className="text-sm text-violet-100 mt-1">
-                      Score: {analysis?.metrics?.mentalHealth?.averageScore || '0'}%
-                    </p>
-                    <p className="text-xs text-violet-100 mt-0.5">
-                      Stress: {analysis?.metrics?.mentalHealth?.stressLevel || 'moderate'}
-                    </p>
-                    <p className="text-xs text-violet-100 mt-0.5">
-                      Trend: {analysis?.metrics?.mentalHealth?.trend || 'stable'}
-                    </p>
-                  </div>
-                  <Brain className="h-8 w-8 text-violet-200" />
-                </div>
-              </div>
-              
-              <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-xl p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sky-100">Physical Activity Score</p>
-                    <h3 className="text-2xl font-bold">
-                      {analysis?.metrics?.exercise?.average || '0'}
-                    </h3>
-                    <p className="text-sm text-sky-100 mt-1">
-                      Trend: {analysis?.metrics?.exercise?.trend || 'stable'}
-                    </p>
-                  </div>
-                  <ActivitySquare className="h-8 w-8 text-sky-200" />
-                </div>
-              </div>
+            {/* Health Score Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {useEnhancedUI ? (
+                        <>
+                          <AnimatedHealthCard 
+                            title="Mental Health Score"
+                            value={analysis?.metrics?.mentalHealth?.averageScore || '0'}
+                            unit="%"
+                            icon={Heart}
+                            trend={analysis?.metrics?.mentalHealth?.trend || 'stable'}
+                            color="violet"
+                            subtitle={`Mood: ${analysis?.metrics?.mentalHealth?.predominantMood || 'neutral'}`}
+                            details="This score represents your overall mental wellbeing based on mood patterns and stress levels detected in your journal entries."
+                          />
+                          
+                          <AnimatedHealthCard 
+                            title="Physical Activity"
+                            value={analysis?.metrics?.exercise?.average || '0'}
+                            unit=" min"
+                            icon={ActivitySquare}
+                            trend={analysis?.metrics?.exercise?.trend || 'stable'}
+                            color="sky"
+                            details="This shows your average daily physical activity in minutes, based on exercise mentions in your journal entries."
+                          />
+                          
+                          <AnimatedHealthCard 
+                            title="Sleep Quality"
+                            value={analysis?.metrics?.sleep?.average || '0'}
+                            unit=" hrs"
+                            icon={Thermometer}
+                            trend={analysis?.metrics?.sleep?.trend || 'stable'}
+                            color="emerald"
+                            subtitle={`Quality: ${analysis?.metrics?.sleep?.quality || '0'}%`}
+                            details="This tracks both your sleep duration and quality, helping you understand how your rest affects your overall wellbeing."
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <motion.div 
+                            variants={slideUp}
+                            className="bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl p-6 text-white"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-violet-100">Mental Health Score</p>
+                                <h3 className="text-2xl font-bold">
+                                  {analysis?.metrics?.mentalHealth?.averageScore || '0'}%
+                                </h3>
+                                <p className="text-sm text-violet-100 mt-1">
+                                  Mood: {analysis?.metrics?.mentalHealth?.predominantMood || 'neutral'}
+                                </p>
+                              </div>
+                              <Heart className="h-8 w-8 text-violet-200" />
+                            </div>
+                          </motion.div>
 
-              <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-emerald-100">Sleep Quality</p>
-                    <h3 className="text-2xl font-bold">
-                      {analysis?.metrics?.sleep?.average || '0'} hrs
-                    </h3>
-                    <p className="text-sm text-emerald-100 mt-1">
-                      Quality: {analysis?.metrics?.sleep?.quality || '0'}%
-                    </p>
-                    <p className="text-xs text-emerald-100 mt-0.5">
-                      Trend: {analysis?.metrics?.sleep?.trend || 'stable'}
-                    </p>
-                  </div>
-                  <Thermometer className="h-8 w-8 text-emerald-200" />
-                </div>
-              </div>
+                          <motion.div 
+                            variants={slideUp}
+                            className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-xl p-6 text-white"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sky-100">Physical Activity Score</p>
+                                <h3 className="text-2xl font-bold">
+                                  {analysis?.metrics?.exercise?.average || '0'}
+                                </h3>
+                                <p className="text-sm text-sky-100 mt-1">
+                                  Trend: {analysis?.metrics?.exercise?.trend || 'stable'}
+                                </p>
+                              </div>
+                              <ActivitySquare className="h-8 w-8 text-sky-200" />
+                            </div>
+                          </motion.div>
+
+                          <motion.div 
+                            variants={slideUp}
+                            className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-6 text-white"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-emerald-100">Sleep Quality</p>
+                                <h3 className="text-2xl font-bold">
+                                  {analysis?.metrics?.sleep?.average || '0'} hrs
+                                </h3>
+                                <p className="text-sm text-emerald-100 mt-1">
+                                  Quality: {analysis?.metrics?.sleep?.quality || '0'}%
+                                </p>
+                                <p className="text-xs text-emerald-100 mt-0.5">
+                                  Trend: {analysis?.metrics?.sleep?.trend || 'stable'}
+                                </p>
+                              </div>
+                              <Thermometer className="h-8 w-8 text-emerald-200" />
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
             </div>
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <HealthInsights chartData={prepareChartData(analysisHistory)} />
-              <MoodTracker moodData={prepareMoodData(analysisHistory)} />
+                {useEnhancedUI ? (
+                  <EnhancedHealthInsights chartData={prepareChartData(analysisHistory)} />
+                ) : (
+                  <HealthInsights chartData={prepareChartData(analysisHistory)} />
+                )}
+                {useEnhancedUI ? (
+                  <EnhancedMoodTracker moodData={prepareMoodData(analysisHistory)} />
+                ) : (
+                  <MoodTracker moodData={prepareMoodData(analysisHistory)} />
+                )}
             </div>
 
             {/* Insights and Recommendations */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Key Insights</h3>
-                <ul className="space-y-2">
-                  {analysis?.insights?.map((insight, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-violet-500">•</span>
-                      <span>{insight}</span>
-                    </li>
-                  )) || <li>No insights available</li>}
-                </ul>
-              </div>
+                {useEnhancedUI ? (
+                  <EnhancedInsightsPanel 
+                    insights={analysis?.insights || []} 
+                    recommendations={analysis?.recommendations || []}
+                  />
+                ) : (
+                  <>
+                    <div className="bg-white p-6 rounded-lg shadow-sm">
+                      <h3 className="text-lg font-semibold mb-4">Key Insights</h3>
+                      <ul className="space-y-2">
+                        {analysis?.insights?.map((insight, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <span className="text-violet-500">•</span>
+                            <span>{insight}</span>
+                          </li>
+                        )) || <li>No insights available</li>}
+                      </ul>
+                    </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Recommendations</h3>
-                <ul className="space-y-2">
-                  {analysis?.recommendations?.map((rec, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-emerald-500">•</span>
-                      <span>{rec}</span>
-                    </li>
-                  )) || <li>No recommendations available</li>}
-                </ul>
-              </div>
+                    <div className="bg-white p-6 rounded-lg shadow-sm">
+                      <h3 className="text-lg font-semibold mb-4">Recommendations</h3>
+                      <ul className="space-y-2">
+                        {analysis?.recommendations?.map((rec, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <span className="text-emerald-500">•</span>
+                            <span>{rec}</span>
+                          </li>
+                        )) || <li>No recommendations available</li>}
+                      </ul>
+                    </div>
+                  </>
+                )}
             </div>
           </div>
         )}
 
-        {!analysis && !error && !isAnalyzing && journalEntries.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-            <h2 className="text-lg font-semibold mb-2">Ready to Analyze</h2>
-            <p className="text-gray-600">
-              Click the Analyze button to generate insights from your journal entries.
-            </p>
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-md"
+            >
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <motion.svg 
+                    animate={{ rotate: [0, 10, 0, -10, 0] }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="h-5 w-5 text-red-400" 
+                    viewBox="0 0 20 20" 
+                    fill="currentColor"
+                  >
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </motion.svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">
+                    {error}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {isAnalyzing && (
-          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-violet-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <h2 className="text-lg font-semibold">Analyzing Your Entries</h2>
-            <p className="text-gray-600 mt-2">This may take a moment...</p>
-          </div>
-        )}
-      </div>
-    </div>
+        <AnimatePresence mode="wait">
+          {!analysis && !error && !isAnalyzing && journalEntries.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-white rounded-xl shadow-sm p-8 text-center"
+            >
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  opacity: [0.7, 1, 0.7]
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatType: "reverse"
+                }}
+                className="mx-auto mb-4"
+              >
+                <Brain className="h-12 w-12 text-violet-300 mx-auto" />
+              </motion.div>
+              <h2 className="text-lg font-semibold mb-2">Ready to Analyze</h2>
+              <p className="text-gray-600">
+                Click the Analyze button to generate insights from your journal entries.
+              </p>
+            </motion.div>
+          )}
+
+          {isAnalyzing && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white rounded-xl shadow-sm p-8 text-center"
+            >
+              <motion.div 
+                animate={{ 
+                  rotate: 360,
+                  borderColor: ['#8b5cf6', '#3b82f6', '#10b981', '#8b5cf6']
+                }}
+                transition={{ 
+                  rotate: { duration: 1.5, repeat: Infinity, ease: "linear" },
+                  borderColor: { duration: 3, repeat: Infinity }
+                }}
+                className="h-12 w-12 border-4 border-t-transparent rounded-full mx-auto mb-4"
+              />
+              <h2 className="text-lg font-semibold">Analyzing Your Entries</h2>
+              <p className="text-gray-600 mt-2">This may take a moment...</p>
+              <motion.div
+                initial={{ width: "0%" }}
+                animate={{ width: "100%" }}
+                transition={{ duration: 15 }}
+                className="h-1 bg-violet-200 mt-4 rounded-full overflow-hidden"
+              >
+                <motion.div
+                  animate={{ x: ["-100%", "100%"] }}
+                  transition={{ 
+                    duration: 1.5, 
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
+                  className="h-full w-1/3 bg-violet-500 rounded-full"
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </motion.div>
   );
 }

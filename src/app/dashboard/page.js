@@ -9,36 +9,48 @@ import {
   Search,
   ChevronDown
 } from 'lucide-react';
+import { getUser } from '@/utils/auth';
 import { storageUtils } from '@/utils/storage';
 import { getConsistentNow, getConsistentISOString } from '../../utils/dateUtils';
 
 export default function Dashboard() {
+  const [user, setUser] = useState(null);
   const [journalEntry, setJournalEntry] = useState('');
   const [journalEntries, setJournalEntries] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [lastUpdateTime, setLastUpdateTime] = useState(null);
-  const [healthScore, setHealthScore] = useState(null);
+  const [healthScore, setHealthScore] = useState({ score: 75, timestamp: new Date().toISOString() });
   const [goalsData, setGoalsData] = useState({ goals: [], habits: [] });
   const [nutritionData, setNutritionData] = useState({ meals: [], waterIntake: 0 });
   const [showAllEntries, setShowAllEntries] = useState(false);
 
   useEffect(() => {
+    // Get user data from localStorage
+    const userData = getUser();
+    setUser(userData);
+    console.log('Current user:', userData);
+    
     // Fetch data from storage
     const savedEntries = storageUtils.getJournalEntries();
     const savedGoalsData = storageUtils.getGoalsData();
     const savedNutritionData = storageUtils.getNutritionData();
-    const savedAnalysis = localStorage.getItem('journalAnalysis');
-    const parsedAnalysis = savedAnalysis ? JSON.parse(savedAnalysis) : null;
-
+    const savedAnalysis = storageUtils.getAnalysis();
+    
+    console.log(`Loaded ${savedEntries.length} journal entries for user:`, userData?.email || 'unknown');
+    console.log('Sample entry:', savedEntries[0] || 'No entries');
+    
     // Set state
     setJournalEntries(savedEntries);
     setGoalsData(savedGoalsData);
     setNutritionData(savedNutritionData);
-
-    if (parsedAnalysis) {
-      setAnalysis(parsedAnalysis);
-      setLastUpdateTime(parsedAnalysis.timestamp);
+    
+    if (savedAnalysis) {
+      console.log('Loaded saved analysis:', savedAnalysis);
+      setAnalysis(savedAnalysis);
+      setLastUpdateTime(savedAnalysis.timestamp);
+    } else {
+      console.log('No saved analysis found');
     }
 
     // Calculate health score
@@ -48,15 +60,15 @@ export default function Dashboard() {
       yesterday.setDate(yesterday.getDate() - 1);
 
       // Calculate active habits
-      const activeHabits = savedGoalsData.habits.filter(habit => {
+      const activeHabits = savedGoalsData.habits ? savedGoalsData.habits.filter(habit => {
         const lastChecked = habit.lastChecked ? new Date(habit.lastChecked) : null;
         return lastChecked &&
                (lastChecked.toDateString() === today.toDateString() ||
                 lastChecked.toDateString() === yesterday.toDateString());
-      }).length;
+      }).length : 0;
 
       // Get latest analysis metrics
-      const metrics = parsedAnalysis?.metrics || {};
+      const metrics = savedAnalysis?.metrics || {};
 
       // Calculate weighted health score
       const weights = {
@@ -97,9 +109,9 @@ export default function Dashboard() {
           exercise: metrics.exercise?.average ? Math.min(100, (metrics.exercise.average / 30) * 100) : 0,
           habits: activeHabits,
           mood: metrics.mentalHealth?.predominantMood || 'neutral',
-          nutrition: savedNutritionData.meals.length > 0 ?
+          nutrition: savedNutritionData.meals && savedNutritionData.meals.length > 0 ?
             Math.min(100, (savedNutritionData.meals.filter(m =>
-              new Date(m.date).toDateString() === today.toDateString()
+              m.date && new Date(m.date).toDateString() === today.toDateString()
             ).length / 3) * 100) : 0
         }
       };
@@ -132,35 +144,67 @@ export default function Dashboard() {
 
   const handleJournalSubmit = (e) => {
     e.preventDefault();
+    if (!journalEntry.trim()) return;
 
+    // Create a more detailed journal entry with metadata for better analysis
     const newEntry = {
-      id: getConsistentNow(),
-      date: getConsistentISOString(),
-      content: journalEntry
+      id: Date.now(),
+      content: journalEntry,
+      date: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
+      mood: 'neutral', // Default mood, could be enhanced with mood selector
+      sleep: {
+        hours: 7, // Default value, could be enhanced with sleep tracker
+        quality: 'average'
+      },
+      exercise: {
+        minutes: 30, // Default value, could be enhanced with exercise tracker
+        type: 'walking'
+      },
+      nutrition: {
+        meals: [],
+        water: 0
+      }
     };
 
+    console.log('Adding new journal entry:', newEntry);
+    
+    // Use the storage utility to add the entry
     const updatedEntries = storageUtils.addJournalEntry(newEntry);
-    if (updatedEntries) {
-      setJournalEntries(updatedEntries);
-      setJournalEntry('');
-    }
+    setJournalEntries(updatedEntries);
+    setJournalEntry('');
   };
 
   const handleAnalyzeReport = async () => {
     try {
+      // Check if we have entries to analyze
+      if (!journalEntries || journalEntries.length === 0) {
+        console.log('No journal entries to analyze');
+        alert('Please add some journal entries before analyzing.');
+        return;
+      }
+
+      console.log(`Analyzing ${journalEntries.length} journal entries`);
+      
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          entries: journalEntries,
-          type: 'batch'
+          entries: journalEntries
         }),
+        credentials: 'include' // Include cookies in the request
       });
 
       if (!response.ok) {
-        throw new Error('Failed to analyze journal entries');
+        const errorData = await response.json();
+        console.error('Analysis API error:', errorData);
+        throw new Error(errorData.error || 'Failed to analyze journal entries');
       }
 
       const analysisData = await response.json();

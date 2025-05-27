@@ -1,24 +1,11 @@
 "use client";
 import Image from 'next/image';
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 const Footer = () => {
-  const [starCount, setStarCount] = useState(0);
-
-  useEffect(() => {
-    const fetchStarCount = async () => {
-      try {
-        const response = await fetch('https://github.com/yasuo72');
-        const data = await response.json();
-        setStarCount(data.stargazers_count); // Get the star count
-      } catch (error) {
-        console.error('Error fetching star count:', error);
-      }
-    };
-
-    fetchStarCount();
-  }, []);
+  // Using a static star count to avoid CORS issues
+  const starCount = 5; // Static placeholder value
 
   return (
     <footer className="mt-188px w-full">

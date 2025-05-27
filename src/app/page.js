@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { 
   Heart, Brain, Activity, Sun, ChevronRight,
@@ -87,17 +88,14 @@ const benefits = [
 ];
 
 export default function Home() {
-  const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const router = useRouter();
 
   const handleStartJourney = async () => {
-    if (username.trim()) {
-      setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      router.push('/dashboard');
-    }
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    router.push('/signup');
   };
 
   return (
@@ -161,24 +159,39 @@ export default function Home() {
                       <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500 shadow-lg mb-3">
                         <Brain className="h-7 w-7 text-white" />
                       </div>
-                      <h2 className="text-2xl font-bold">Start Your Journey</h2>
-                      <p className="text-gray-600 text-sm">Join thousands improving their health with AI</p>
+                      <div className="flex flex-col space-y-6 max-w-xl">
+                        <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight">
+                          Your AI-Powered Health Journal for Better Wellness
+                        </h1>
+                        <p className="text-lg text-gray-600">
+                          Track your health metrics, get personalized insights, and achieve your wellness goals with our AI assistant.
+                        </p>
+                        
+                        <div className="mt-2">
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <button 
+                              onClick={handleStartJourney}
+                              disabled={isLoading}
+                              className="px-6 py-3 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isLoading ? (
+                                <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                              ) : null}
+                              Get Started
+                              <ChevronRight className="ml-2 h-5 w-5" />
+                            </button>
+                            <Link 
+                              href="/login"
+                              className="px-6 py-3 bg-white text-violet-600 border border-violet-200 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
+                            >
+                              Sign In
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          Choose a username
-                        </label>
-                        <input
-                          type="text"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
-                          placeholder="Enter your username"
-                        />
-                      </div>
-
                       <button
                         onClick={handleStartJourney}
                         disabled={isLoading}
